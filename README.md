@@ -12,6 +12,8 @@ Welcome to the **txtme** backend! This service provides a robust authentication 
 - **Security:** [JWT](https://jwt.io/) (JSON Web Tokens), [bcryptjs](https://github.com/dcodeIO/bcrypt.js/)
 - **Validation:** [Zod](https://zod.dev/)
 - **Containerization:** [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
+- **CI/CD:** [GitHub Actions](https://github.com/features/actions) (Automated Build, Docker Validation, CodeQL Security Scan)
+- **Security Scanning:** [GitHub CodeQL](https://codeql.github.com/)
 
 ## 🛠️ Getting Started
 
@@ -28,17 +30,22 @@ Welcome to the **txtme** backend! This service provides a robust authentication 
    cd backend
    ```
 
-2. **Set up Environment Variables**:
-   Create a `.env` file in the root directory (one is provided by default):
-   ```env
-   PORT=5000
-   DATABASE_URL=postgresql://txtme_user:txtme_password@postgres:5432/txtme_db?schema=public
-   JWT_ACCESS_SECRET=your_jwt_access_secret
-   JWT_REFRESH_SECRET=your_jwt_refresh_secret
-   JWT_ACCESS_EXPIRY=15m
-   JWT_REFRESH_EXPIRY=7d
-   NODE_ENV=development
-   ```
+### 🔧 Configuration
+
+The application uses environment variables for configuration. A `.env` file should be located in the `backend/` directory.
+
+| Variable | Description | Default / Example |
+| :--- | :--- | :--- |
+| `PORT` | The port the Express server will listen on. | `5000` |
+| `DATABASE_URL` | Prisma/PostgreSQL connection string. | `postgresql://...` |
+| `JWT_ACCESS_SECRET` | Secret key for signing Access Tokens. | `your_secret` |
+| `JWT_REFRESH_SECRET` | Secret key for signing Refresh Tokens. | `your_secret` |
+| `JWT_ACCESS_EXPIRY` | Access token duration (e.g., `15m`, `1h`). | `15m` |
+| `JWT_REFRESH_EXPIRY` | Refresh token duration (e.g., `7d`, `30d`). | `7d` |
+| `NODE_ENV` | Environment mode (`development`, `production`). | `development` |
+
+> [!CAUTION]
+> Never commit your `.env` file to version control. The included `.env` is for development convenience only.
 
 3. **Launch the Application via Docker**:
    ```bash
@@ -51,8 +58,26 @@ Welcome to the **txtme** backend! This service provides a robust authentication 
 4. **Initialize the Database**:
    Run the migrations inside the backend container:
    ```bash
-   docker exec txtme_backend npx prisma migrate dev --name init
+   docker exec txtme_backend npm run prisma:migrate
    ```
+
+## 🗄️ Database Management
+
+This project uses **Prisma 6** as an ORM.
+
+### Common Commands
+
+All commands should be run within the backend directory:
+
+| Task | Command |
+| :--- | :--- |
+| **Generate Client** | `npx prisma generate` |
+| **Create Migration** | `npx prisma migrate dev --name <migration_name>` |
+| **Reset Database** | `npx prisma migrate reset` |
+| **Prisma Studio** | `npx prisma studio` (UI for database management) |
+
+> [!TIP]
+> Use `npm run prisma:migrate` as a shortcut for `prisma migrate dev`.
 
 ## 🔐 Authentication API
 
@@ -192,6 +217,34 @@ curl -X POST http://localhost:5000/contacts/<CONTACT_ID>/notes \
   -H "Content-Type: application/json" \
   -d '{"content": "Meeting at 5pm"}'
 ```
+
+## 🛠️ CI/CD & Security
+
+This project implements a robust CI/CD pipeline and automated security monitoring.
+
+### ♾️ GitHub Actions Workflow
+
+The project uses GitHub Actions (defined in `.github/workflows/ci.yml`) for continuous integration:
+
+1.  **Build & Test**:
+    *   Sets up a Node.js 20 environment.
+    *   Performs `npm ci` for clean dependency installation.
+    *   Generates the Prisma client.
+    *   Runs the TypeScript compiler (`tsc`) to ensure type safety.
+2.  **Docker Validation**:
+    *   Ensures the `Dockerfile` builds successfully.
+    *   Prevents regressions that might break the containerized environment.
+3.  **Security Analysis (CodeQL)**:
+    *   Automated static analysis using GitHub's CodeQL.
+    *   Scans for common vulnerabilities and security patterns in the JavaScript/TypeScript codebase.
+
+### 🛡️ Security Best Practices
+
+*   **Authentication:** JWT-based stateless authentication with separate access and refresh tokens.
+*   **Password Hashing:** Uses `bcryptjs` with a secure salt factor.
+*   **Data Validation:** Strict input validation using `Zod` schemas for all API endpoints.
+*   **ORM Safety:** Prisma prevents SQL injection by design through parameterized queries.
+*   **Security Scanning:** Automated vulnerability detection integrated into the PR workflow.
 
 ## 📂 Project Structure
 
