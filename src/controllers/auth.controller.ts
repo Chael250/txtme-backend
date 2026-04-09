@@ -51,14 +51,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
-  res.cookie('accessToken', 'loggedout', {
-    expires: new Date(Date.now() + 10 * 1000),
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
     httpOnly: true,
-  });
-  res.cookie('refreshToken', 'loggedout', {
+    secure: isProduction,
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
     expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: true,
-  });
+  };
+
+  res.cookie('accessToken', 'loggedout', cookieOptions);
+  res.cookie('refreshToken', 'loggedout', cookieOptions);
 
   res.status(200).json({ status: 'success' });
 };
