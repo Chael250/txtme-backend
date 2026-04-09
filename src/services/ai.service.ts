@@ -3,9 +3,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+
+const getOpenAI = () => {
+  if (_openai) return _openai;
+  
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn('OPENAI_API_KEY is missing. AI search features will be disabled.');
+    return null;
+  }
+
+  _openai = new OpenAI({ apiKey });
+  return _openai;
+};
 
 export interface SearchFilters {
   name?: string;
@@ -17,6 +28,9 @@ export interface SearchFilters {
 
 export const parseQuery = async (query: string): Promise<SearchFilters> => {
   try {
+    const openai = getOpenAI();
+    if (!openai) return {};
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
