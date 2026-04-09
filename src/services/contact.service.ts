@@ -149,8 +149,9 @@ export const getFavoriteContacts = async (userId: string) => {
 };
 export const smartSearch = async (userId: string, filters: any, originalQuery: string) => {
   const where: any = { userId };
-  const orConditions: any[] = [];
+  let orConditions: any[] = [];
 
+  // 1. Handle structured filters from AI
   if (filters.name) {
     orConditions.push({ firstname: { contains: filters.name, mode: 'insensitive' } });
     orConditions.push({ lastname: { contains: filters.name, mode: 'insensitive' } });
@@ -162,26 +163,40 @@ export const smartSearch = async (userId: string, filters: any, originalQuery: s
 
   if (filters.location) {
     orConditions.push({ address: { contains: filters.location, mode: 'insensitive' } });
+    orConditions.push({ company: { contains: filters.location, mode: 'insensitive' } });
     orConditions.push({
-      notes: {
-        some: {
-          content: { contains: filters.location, mode: 'insensitive' },
-        },
-      },
+      notes: { some: { content: { contains: filters.location, mode: 'insensitive' } } },
     });
   }
 
   if (filters.role) {
     orConditions.push({
-      notes: {
-        some: {
-          content: { contains: filters.role, mode: 'insensitive' },
-        },
-      },
+      notes: { some: { content: { contains: filters.role, mode: 'insensitive' } } },
     });
   }
 
-  // If no structured filters were found, fall back to basic query search
+  // 2. Keyword-based fallback/supplement
+  // Even if we have structured filters, adding keyword matches improves recall
+  if (originalQuery) {
+    const stopWords = ['a', 'an', 'the', 'and', 'or', 'at', 'with', 'from', 'in', 'on', 'met', 'friend'];
+    const keywords = originalQuery
+      .split(/\s+/)
+      .filter((k) => k.length > 2 && !stopWords.includes(k.toLowerCase()));
+
+    if (keywords.length > 0) {
+      keywords.forEach((kw) => {
+        orConditions.push({ firstname: { contains: kw, mode: 'insensitive' } });
+        orConditions.push({ lastname: { contains: kw, mode: 'insensitive' } });
+        orConditions.push({ company: { contains: kw, mode: 'insensitive' } });
+        orConditions.push({ address: { contains: kw, mode: 'insensitive' } });
+        orConditions.push({
+          notes: { some: { content: { contains: kw, mode: 'insensitive' } } },
+        });
+      });
+    }
+  }
+
+  // 3. Ultimate fallback (exact full string) if no keywords were extracted
   if (orConditions.length === 0 && originalQuery) {
     orConditions.push({ firstname: { contains: originalQuery, mode: 'insensitive' } });
     orConditions.push({ lastname: { contains: originalQuery, mode: 'insensitive' } });
