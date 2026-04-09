@@ -6,7 +6,13 @@ const prisma = new PrismaClient();
 export const createContact = async (userId: string, data: any) => {
   return await prisma.contact.create({
     data: {
-      ...data,
+      firstname: data.firstname,
+      lastname: data.lastname,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      company: data.company,
+      isFavorite: data.favorite ?? data.isFavorite ?? false,
       userId,
     },
     include: {
@@ -52,7 +58,15 @@ export const updateContact = async (userId: string, id: string, data: any) => {
 
   return await prisma.contact.update({
     where: { id },
-    data,
+    data: {
+      firstname: data.firstname,
+      lastname: data.lastname,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      company: data.company,
+      isFavorite: data.favorite ?? data.isFavorite,
+    },
     include: {
       tags: true,
       notes: true,
